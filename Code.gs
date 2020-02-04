@@ -1,13 +1,12 @@
 function gameTick() {
   var startPage = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Start");
-  
-  startPage.getRange('d9').setValue('=now()');
-  
+    
   var startStats = startPage.getRange("D1:D11").getValues();
-  
-  var shipSections = getShipSections();
-  
+    
   if(startStats[0][0] == 'RUNNING') {
+    startPage.getRange('d9').setValue('=now()');
+    var shipSections = getShipSections();
+  
     /*
     var scriptProperties = PropertiesService.getScriptProperties();
     var bridgeState = JSON.parse(scriptProperties.getProperty("Bridge"));
@@ -20,6 +19,7 @@ function gameTick() {
       for each(var shipSection in shipSections) {
         shipSection.getRange("B1").setValue("💀💀💀💀💀");
         shipSection.getRange("B2").setValue("GAME OVER! You scored " + startStats[10][0]);
+        shipSection.getRange('D1:I1').setValue("");
       }
     }
     else {
@@ -145,7 +145,7 @@ function populateConsole(){
 
 function shuffleArray(array) {
     for (var i = array.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
+        var j = Math.floor(Math.random() * i);
         var temp = array[i];
         array[i] = array[j];
         array[j] = temp;
@@ -230,9 +230,41 @@ function randbetween(i, j, min, max) {
 
 function onEdit(e) {
   var startStats = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Start").getRange("D1:D10").getValues();
-  if (startStats[0][0] == 'RUNNING') {
+  
+  Logger.log(e.range.getSheet().getName());
+  
+  if (e.range.getSheet().getName() != 'Start'&& startStats[0][0] == 'RUNNING') {
     var editedRange = e.range;
     //Logger.log(editedRange.getBackground());
+    
+    var editedValues = editedRange.getValues();
+    var editedBG = editedRange.getBackgrounds();
+    
+    var editedStartColumn = editedRange.getColumn();
+    var editedStartRow = editedRange.getRow();
+    var editedSheet = editedRange.getSheet();
+       
+    for(var i = 0; i < editedRange.getNumColumns() - 1; i++) {
+      for(var j = 0; j < editedRange.getNumColumns() - 1; j++) {
+        if(editedValues[i][j] == "") {
+          var editedCell = editedSheet.getRange(editedStartColumn + i, editedStartRow + j);
+          if(editedBG[i][j] == '#ff0000'){
+            Logger.log("BUG SQUASHED!");
+            editedCell.setValue(randomEmoji());
+            editedCell.setBackground(randomColor());
+            SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Start").getRange('b10').setValue(startStats[9][0] + 0.1);
+          }
+          else {
+            Logger.log("EMOJI SQUASHED!");
+            editedCell.setValue(randomEmoji());
+            randomBug(editedCell.getSheet());
+            randomBug(editedCell.getSheet());
+            //refreshScreen(editedRange.getSheet());
+          }
+        }
+      }
+    }
+    
     if(editedRange.getSheet().getName() != 'Start' && editedRange.getValue() == "") {
       //for each (var editedRange in editedRanges) {
       if(editedRange.getBackground() == '#ff0000'){
@@ -248,7 +280,26 @@ function onEdit(e) {
       }
       populateConsole();
     }
+    
   }
+}
+
+function checkEdit(range, difficulty) {
+   if(range.getSheet().getName() != 'Start' && range.getValue() == "") {
+     //for each (var editedRange in editedRanges) {
+     if(range.getBackground() == '#ff0000'){
+       range.setValue(randomEmoji());
+       range.setBackground(randomColor());
+       SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Start").getRange('b10').setValue(difficulty + 0.1);
+     }
+     else {
+       range.setValue(randomEmoji());
+       randomBug(range.getSheet());
+       randomBug(range.getSheet());
+       //refreshScreen(editedRange.getSheet());
+     }
+     populateConsole();
+   }
 }
 
 function refreshScreen(sheet){
@@ -311,24 +362,26 @@ function setup() {
   var shipSections = getShipSections();
   
   for each (var sheet in shipSections){
-      sheet.getRange('A1').setValue("Total Bug Count");
-      sheet.getRange('B1').setValue("=Start!D7");
-      sheet.getRange('A2').setValue("Console");
-      sheet.hideColumn(sheet.getRange('BA1'));
-      for(var i = 3; i < 50; i++) {
-        for(var j = 3; j < 50; j++) {
-          //55356, 57088 to 55357, 56831
-          //var randomhex = Utilities.formatString('%02x',);
-          var currentCell = sheet.getRange(i, j);
-          var emoji = randomEmoji();
-          currentCell.setHorizontalAlignment("center");
-          currentCell.setValue(emoji);
-          currentCell.setBackground(randomColor());
-        }
+    sheet.getRange('A1').setValue("Total Bug Count");
+    sheet.getRange('B1').setValue("=Start!D7");
+    sheet.getRange('A2').setValue("Console");
+    sheet.getRange('D1').setValue("Current Score");
+    sheet.getRange('I1').setValue("=Start!C8");
+    sheet.hideColumn(sheet.getRange('BA1'));
+    for(var i = 3; i < 50; i++) {
+      for(var j = 3; j < 50; j++) {
+        //55356, 57088 to 55357, 56831
+        //var randomhex = Utilities.formatString('%02x',);
+        var currentCell = sheet.getRange(i, j);
+        var emoji = randomEmoji();
+        currentCell.setHorizontalAlignment("center");
+        currentCell.setValue(emoji);
+        currentCell.setBackground(randomColor());
       }
-      randomBug(sheet);
-      sheet.setColumnWidths(3, 47, 20);
     }
+    randomBug(sheet);
+    sheet.setColumnWidths(3, 47, 20);
+  }
   
   assignSection();
   populateConsole();
